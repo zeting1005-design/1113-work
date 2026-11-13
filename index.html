@@ -1,0 +1,1960 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HOLONET // 星際戰術會議紀錄與智能翻譯系統</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Noto+Sans+TC:wght@300;400;500;700&family=Orbitron:wght@500;700;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-space: #040812;
+      --bg-panel: rgba(10, 19, 36, 0.86);
+      --bg-card: rgba(13, 25, 48, 0.78);
+      --bg-input: rgba(6, 13, 26, 0.9);
+      --cyan: #00e5ff;
+      --cyan-dim: rgba(0, 229, 255, 0.22);
+      --cyan-glow: 0 0 14px rgba(0, 229, 255, 0.35);
+      --gold: #f5b82e;
+      --gold-dim: rgba(245, 184, 46, 0.2);
+      --crimson: #ff3b5c;
+      --crimson-dim: rgba(255, 59, 92, 0.18);
+      --emerald: #00e676;
+      --text-main: #e6f2ff;
+      --text-sub: #8ba4c4;
+      --border-hud: rgba(0, 229, 255, 0.32);
+      --font-hud: 'Orbitron', 'Noto Sans TC', sans-serif;
+      --font-body: 'Noto Sans TC', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background-color: var(--bg-space);
+      background-image:
+        radial-gradient(circle at 18% 12%, rgba(0, 229, 255, 0.08) 0%, transparent 40%),
+        radial-gradient(circle at 85% 80%, rgba(245, 184, 46, 0.06) 0%, transparent 42%),
+        linear-gradient(rgba(0, 229, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 229, 255, 0.03) 1px, transparent 1px);
+      background-size: 100% 100%, 100% 100%, 42px 42px, 42px 42px;
+      color: var(--text-main);
+      font-family: var(--font-body);
+      line-height: 1.6;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Subtle Star Wars Holonet Scanline */
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background: repeating-linear-gradient(
+        to bottom,
+        transparent 0px,
+        transparent 3px,
+        rgba(0, 229, 255, 0.015) 4px
+      );
+      z-index: 9999;
+    }
+
+    ::-webkit-scrollbar { width: 7px; height: 7px; }
+    ::-webkit-scrollbar-track { background: #050b16; }
+    ::-webkit-scrollbar-thumb { background: rgba(0, 229, 255, 0.35); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--cyan); }
+
+    /* Top Command Header */
+    .hud-header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(5, 10, 22, 0.94);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-hud);
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.6);
+      padding: 12px 24px;
+    }
+
+    .hud-header-inner {
+      max-width: 1440px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .brand-emblem {
+      width: 42px;
+      height: 42px;
+      border: 1.5px solid var(--cyan);
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      position: relative;
+      box-shadow: var(--cyan-glow);
+      flex-shrink: 0;
+    }
+
+    .brand-emblem::before {
+      content: "";
+      width: 24px;
+      height: 24px;
+      border: 1.5px solid var(--gold);
+      border-radius: 50%;
+      border-top-color: transparent;
+      animation: spinSlow 8s linear infinite;
+    }
+
+    .brand-emblem::after {
+      content: "";
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      background: var(--cyan);
+      border-radius: 50%;
+      box-shadow: 0 0 10px var(--cyan);
+    }
+
+    @keyframes spinSlow { to { transform: rotate(360deg); } }
+
+    .brand-title {
+      font-family: var(--font-hud);
+      font-size: 1.1rem;
+      letter-spacing: 2px;
+      color: var(--cyan);
+      text-shadow: 0 0 10px rgba(0, 229, 255, 0.45);
+    }
+
+    .brand-sub {
+      font-size: 0.78rem;
+      color: var(--text-sub);
+      letter-spacing: 1px;
+      font-family: var(--font-mono);
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .live-clock-box {
+      padding: 6px 14px;
+      border: 1px solid rgba(0, 229, 255, 0.28);
+      background: rgba(0, 229, 255, 0.05);
+      clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      color: var(--cyan);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--emerald);
+      box-shadow: 0 0 8px var(--emerald);
+    }
+
+    .status-dot.recording {
+      background: var(--crimson);
+      box-shadow: 0 0 10px var(--crimson);
+      animation: pulseRec 1s infinite;
+    }
+
+    @keyframes pulseRec {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(1.25); }
+    }
+
+    /* Buttons */
+    .btn {
+      font-family: var(--font-body);
+      font-size: 0.86rem;
+      font-weight: 500;
+      padding: 8px 16px;
+      border: 1px solid var(--border-hud);
+      background: rgba(0, 229, 255, 0.08);
+      color: var(--text-main);
+      text-decoration: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+    }
+
+    .btn:hover {
+      background: rgba(0, 229, 255, 0.18);
+      border-color: var(--cyan);
+      box-shadow: var(--cyan-glow);
+      transform: translateY(-1px);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, rgba(0, 229, 255, 0.28), rgba(0, 130, 200, 0.3));
+      border-color: var(--cyan);
+      color: #fff;
+    }
+
+    .btn-gold {
+      border-color: var(--gold);
+      background: rgba(245, 184, 46, 0.14);
+      color: var(--gold);
+    }
+
+    .btn-gold:hover {
+      background: rgba(245, 184, 46, 0.26);
+      border-color: var(--gold);
+      box-shadow: 0 0 14px rgba(245, 184, 46, 0.35);
+      color: #fff;
+    }
+
+    /* 左上角前往後台專用按鈕樣式 */
+    .btn-backend {
+      border-color: var(--cyan);
+      background: linear-gradient(135deg, rgba(0, 229, 255, 0.2), rgba(245, 184, 46, 0.16));
+      color: #ffffff;
+      font-weight: 700;
+      padding: 9px 16px;
+      letter-spacing: 0.5px;
+    }
+
+    .btn-backend:hover {
+      border-color: var(--gold);
+      background: linear-gradient(135deg, rgba(0, 229, 255, 0.32), rgba(245, 184, 46, 0.28));
+      box-shadow: 0 0 16px rgba(0, 229, 255, 0.4);
+    }
+
+    .btn-danger {
+      border-color: var(--crimson);
+      background: rgba(255, 59, 92, 0.16);
+      color: #ff8ca0;
+    }
+
+    .btn-danger:hover {
+      background: rgba(255, 59, 92, 0.3);
+      box-shadow: 0 0 14px rgba(255, 59, 92, 0.4);
+    }
+
+    .btn-download {
+      background: linear-gradient(135deg, rgba(245, 184, 46, 0.28), rgba(245, 140, 20, 0.22));
+      border: 1px solid var(--gold);
+      color: #ffe39b;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+
+    .btn-download:hover {
+      background: rgba(245, 184, 46, 0.4);
+      box-shadow: 0 0 18px rgba(245, 184, 46, 0.45);
+      color: #fff;
+    }
+
+    /* Main Container */
+    .container {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 22px 24px 60px;
+      display: flex;
+      flex-direction: column;
+      gap: 26px;
+    }
+
+    .hud-panel {
+      position: relative;
+      background: var(--bg-panel);
+      border: 1px solid var(--border-hud);
+      padding: 22px 24px;
+      backdrop-filter: blur(8px);
+      box-shadow: inset 0 0 30px rgba(0, 229, 255, 0.03), 0 8px 32px rgba(0, 0, 0, 0.45);
+    }
+
+    .hud-panel::before, .hud-panel::after {
+      content: "";
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      border: 2px solid var(--cyan);
+      pointer-events: none;
+    }
+
+    .hud-panel::before { top: -1px; left: -1px; border-right: none; border-bottom: none; }
+    .hud-panel::after { bottom: -1px; right: -1px; border-left: none; border-top: none; }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      padding-bottom: 14px;
+      margin-bottom: 18px;
+      border-bottom: 1px solid rgba(0, 229, 255, 0.18);
+    }
+
+    .panel-title-wrap {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .panel-tag {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      padding: 3px 8px;
+      background: var(--cyan-dim);
+      color: var(--cyan);
+      border: 1px solid rgba(0, 229, 255, 0.4);
+      letter-spacing: 1px;
+    }
+
+    .panel-title {
+      font-family: var(--font-hud);
+      font-size: 1.18rem;
+      letter-spacing: 1.5px;
+      color: #fff;
+    }
+
+    /* Live Capture Console */
+    .capture-console {
+      background: rgba(7, 15, 30, 0.92);
+      border: 1px solid rgba(0, 229, 255, 0.35);
+      padding: 16px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .capture-controls-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    .control-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .hud-select, .hud-input {
+      background: var(--bg-input);
+      border: 1px solid rgba(0, 229, 255, 0.3);
+      color: var(--text-main);
+      padding: 7px 11px;
+      font-family: var(--font-body);
+      font-size: 0.85rem;
+      outline: none;
+    }
+
+    .hud-select:focus, .hud-input:focus {
+      border-color: var(--cyan);
+      box-shadow: 0 0 8px rgba(0, 229, 255, 0.25);
+    }
+
+    .speaker-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .speaker-chip {
+      padding: 6px 12px;
+      font-size: 0.82rem;
+      border: 1px solid rgba(139, 164, 196, 0.35);
+      background: rgba(13, 25, 48, 0.7);
+      color: var(--text-sub);
+      cursor: pointer;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .speaker-chip.active {
+      border-color: var(--cyan);
+      background: rgba(0, 229, 255, 0.16);
+      color: #fff;
+      box-shadow: 0 0 10px rgba(0, 229, 255, 0.25);
+    }
+
+    .speaker-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    .live-stream-grid {
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      gap: 14px;
+      align-items: stretch;
+    }
+
+    @media (max-width: 860px) {
+      .live-stream-grid { grid-template-columns: 1fr; }
+    }
+
+    .visualizer-box {
+      background: rgba(4, 9, 18, 0.9);
+      border: 1px solid rgba(0, 229, 255, 0.22);
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 6px;
+    }
+
+    canvas#audioWave {
+      width: 100%;
+      height: 54px;
+      display: block;
+    }
+
+    .voice-meta {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: var(--text-sub);
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .live-transcript-box {
+      background: rgba(4, 9, 18, 0.9);
+      border: 1px solid rgba(0, 229, 255, 0.22);
+      padding: 10px 14px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .interim-text {
+      font-size: 0.9rem;
+      color: var(--cyan);
+      min-height: 24px;
+    }
+
+    .manual-input-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    .manual-input-row input { flex: 1; }
+
+    /* SECTION 1 (TOP): 會議紀錄資料 */
+    .meeting-meta-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+
+    .meta-card {
+      background: var(--bg-card);
+      border: 1px solid rgba(0, 229, 255, 0.2);
+      padding: 12px 14px;
+    }
+
+    .meta-label {
+      font-family: var(--font-mono);
+      font-size: 0.73rem;
+      color: var(--cyan);
+      letter-spacing: 0.8px;
+      margin-bottom: 4px;
+    }
+
+    .meta-value {
+      font-size: 0.95rem;
+      font-weight: 500;
+      color: #fff;
+      word-break: break-word;
+    }
+
+    .meta-input {
+      width: 100%;
+      background: transparent;
+      border: none;
+      border-bottom: 1px dashed rgba(0, 229, 255, 0.35);
+      color: #fff;
+      font-size: 0.95rem;
+      font-family: var(--font-body);
+      padding: 2px 0;
+      outline: none;
+    }
+
+    .meta-input:focus { border-bottom-color: var(--cyan); }
+
+    .topic-list {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .topic-block {
+      background: rgba(8, 17, 34, 0.85);
+      border: 1px solid rgba(0, 229, 255, 0.24);
+      border-left: 4px solid var(--cyan);
+      padding: 16px 18px;
+    }
+
+    .topic-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 14px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .topic-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--cyan);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .topic-time {
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      color: var(--text-sub);
+      background: rgba(0, 229, 255, 0.08);
+      padding: 3px 10px;
+      border: 1px solid rgba(0, 229, 255, 0.22);
+    }
+
+    .attendee-records-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+
+    .attendee-card {
+      background: rgba(13, 27, 52, 0.7);
+      border: 1px solid rgba(139, 164, 196, 0.22);
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .attendee-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+      padding-bottom: 6px;
+    }
+
+    .attendee-name {
+      font-weight: 700;
+      font-size: 0.94rem;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .attendee-role {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: var(--gold);
+      background: var(--gold-dim);
+      padding: 2px 7px;
+      border: 1px solid rgba(245, 184, 46, 0.35);
+    }
+
+    .record-item {
+      padding: 8px 10px;
+      background: rgba(5, 11, 22, 0.7);
+      border-left: 2px solid rgba(0, 229, 255, 0.45);
+      font-size: 0.88rem;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .record-item.uncertain {
+      border-left-color: var(--gold);
+      background: rgba(245, 184, 46, 0.08);
+      border: 1px solid rgba(245, 184, 46, 0.35);
+      border-left-width: 3px;
+    }
+
+    .record-meta-line {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: var(--text-sub);
+    }
+
+    .badge-uncertain {
+      background: rgba(245, 184, 46, 0.22);
+      color: #ffd56b;
+      border: 1px solid var(--gold);
+      padding: 1px 6px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      font-family: var(--font-mono);
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .record-translated { color: #fff; font-weight: 400; }
+    .record-original { color: var(--text-sub); font-size: 0.79rem; font-style: italic; }
+
+    .topic-summary-box {
+      background: rgba(0, 229, 255, 0.06);
+      border: 1px dashed rgba(0, 229, 255, 0.35);
+      padding: 10px 14px;
+      font-size: 0.88rem;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .topic-summary-title {
+      font-family: var(--font-mono);
+      font-size: 0.76rem;
+      color: var(--cyan);
+      font-weight: 700;
+    }
+
+    /* SECTION 2 (MIDDLE): 各業務的待辦事項 */
+    .dept-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+      gap: 16px;
+    }
+
+    .dept-card {
+      background: var(--bg-card);
+      border: 1px solid rgba(0, 229, 255, 0.25);
+      padding: 15px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .dept-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(0, 229, 255, 0.16);
+      padding-bottom: 8px;
+    }
+
+    .dept-title {
+      font-weight: 700;
+      font-size: 0.98rem;
+      color: var(--cyan);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .dept-count {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      padding: 2px 8px;
+      background: rgba(0, 229, 255, 0.14);
+      border: 1px solid rgba(0, 229, 255, 0.35);
+      color: #fff;
+    }
+
+    .todo-list {
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+      list-style: none;
+    }
+
+    .todo-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 9px 10px;
+      background: rgba(5, 11, 22, 0.75);
+      border: 1px solid rgba(139, 164, 196, 0.18);
+      font-size: 0.87rem;
+      transition: border-color 0.2s;
+    }
+
+    .todo-item.uncertain-todo {
+      border-color: rgba(245, 184, 46, 0.45);
+      background: rgba(245, 184, 46, 0.06);
+    }
+
+    .todo-item.done { opacity: 0.55; }
+    .todo-item.done .todo-text { text-decoration: line-through; }
+
+    .todo-checkbox {
+      margin-top: 4px;
+      accent-color: var(--cyan);
+      width: 15px;
+      height: 15px;
+      cursor: pointer;
+    }
+
+    .todo-body { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+    .todo-meta {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: var(--text-sub);
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    /* SECTION 3 (BOTTOM): 最新資訊快報 */
+    .intel-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 14px;
+    }
+
+    .intel-card {
+      background: rgba(7, 15, 30, 0.88);
+      border: 1px solid rgba(0, 229, 255, 0.22);
+      border-top: 2px solid var(--cyan);
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .intel-card.alert {
+      border-top-color: var(--gold);
+      border-color: rgba(245, 184, 46, 0.32);
+    }
+
+    .intel-card.critical {
+      border-top-color: var(--crimson);
+      border-color: rgba(255, 59, 92, 0.35);
+    }
+
+    .intel-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-family: var(--font-mono);
+      font-size: 0.73rem;
+    }
+
+    .intel-type {
+      padding: 2px 7px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+
+    .intel-type.info { background: var(--cyan-dim); color: var(--cyan); }
+    .intel-type.warn { background: var(--gold-dim); color: var(--gold); }
+    .intel-type.crit { background: var(--crimson-dim); color: #ff8ca0; }
+
+    .intel-title { font-weight: 700; font-size: 0.95rem; color: #fff; }
+    .intel-desc { font-size: 0.85rem; color: var(--text-sub); }
+
+    /* Modal */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(2, 5, 12, 0.82);
+      backdrop-filter: blur(6px);
+      display: none;
+      place-items: center;
+      z-index: 500;
+      padding: 20px;
+    }
+
+    .modal-backdrop.open { display: grid; }
+
+    .modal-box {
+      width: 100%;
+      max-width: 540px;
+      background: #091326;
+      border: 1px solid var(--cyan);
+      box-shadow: 0 0 36px rgba(0, 229, 255, 0.25);
+      padding: 22px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .modal-title {
+      font-family: var(--font-hud);
+      font-size: 1.05rem;
+      color: var(--cyan);
+      letter-spacing: 1px;
+    }
+
+    .form-field { display: flex; flex-direction: column; gap: 6px; font-size: 0.85rem; }
+    .form-field label { color: var(--text-sub); font-family: var(--font-mono); font-size: 0.76rem; }
+
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: rgba(8, 20, 40, 0.96);
+      border: 1px solid var(--cyan);
+      color: #fff;
+      padding: 10px 18px;
+      font-size: 0.86rem;
+      box-shadow: var(--cyan-glow);
+      z-index: 600;
+      opacity: 0;
+      transform: translateY(12px);
+      transition: all 0.25s ease;
+      pointer-events: none;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+
+    @media print {
+      .capture-console, .no-print { display: none !important; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- TOP COMMAND HUD -->
+  <header class="hud-header">
+    <div class="hud-header-inner">
+      <!-- 左上角：前往後台連結按鈕 + 系統識別 -->
+      <div class="header-left">
+        <a href="file:///C:/Users/user/Documents/%E5%B6%BA%E7%A2%A9%E8%87%AA%E5%8B%96%E5%8C%96%E7%B7%B4%E7%BF%92%E5%8C%85/1113/tabs.html"
+           class="btn btn-backend no-print"
+           title="前往業務每週進度與市場分析回報後台">
+          🚀 前往後台
+        </a>
+
+        <div class="brand">
+          <div class="brand-emblem"></div>
+          <div>
+            <div class="brand-title">HOLONET // 戰術會議紀錄系統</div>
+            <div class="brand-sub">LIVE VOICE DIARIZATION · TRANSLATION · INTEL SYNTHESIS</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 右上角：時間、設定與下載 HTML 按鈕 -->
+      <div class="header-right">
+        <div class="live-clock-box">
+          <span class="status-dot" id="systemDot"></span>
+          <span id="liveClock">載入星際標準時間...</span>
+        </div>
+        <button class="btn no-print" onclick="openSettingsModal()">⚙ AI 核心設定</button>
+        <button class="btn btn-download no-print" id="downloadHtmlBtn" onclick="downloadMeetingHTML()">
+          ⬇ 下載 HTML 檔案
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+
+    <!-- LIVE AUDIO & TRANSLATION CONSOLE -->
+    <section class="capture-console no-print" aria-label="即時收音與翻譯控制台">
+      <div class="capture-controls-row">
+        <div class="control-group">
+          <button class="btn btn-primary" id="micToggleBtn" onclick="toggleRecording()">
+            🎙 開始現場收音
+          </button>
+          <button class="btn btn-gold" onclick="runSimulationDemo()">
+            ⚡ 載入會議實況模擬
+          </button>
+          <button class="btn" onclick="synthesizeMeeting(true)">
+            🧠 AI 智能統整紀錄
+          </button>
+          <button class="btn btn-danger" onclick="clearAllRecords()">
+            🗑 重置紀錄
+          </button>
+        </div>
+
+        <div class="control-group">
+          <label style="font-size:0.8rem;color:var(--text-sub);">收音語系</label>
+          <select class="hud-select" id="srcLang">
+            <option value="zh-TW" selected>繁體中文 (台灣)</option>
+            <option value="en-US">English (US)</option>
+            <option value="ja-JP">日本語</option>
+            <option value="ko-KR">한국어</option>
+          </select>
+          <span style="color:var(--cyan);">➔</span>
+          <label style="font-size:0.8rem;color:var(--text-sub);">翻譯輸出</label>
+          <select class="hud-select" id="targetLang">
+            <option value="zh-TW" selected>繁體中文 (台灣)</option>
+            <option value="en">English</option>
+            <option value="ja">日本語</option>
+          </select>
+          <label style="font-size:0.8rem;color:var(--text-sub);display:flex;align-items:center;gap:5px;cursor:pointer;">
+            <input type="checkbox" id="autoPitchDiarize" checked style="accent-color:var(--cyan);">
+            聲頻音高自動辨人
+          </label>
+        </div>
+      </div>
+
+      <div class="speaker-bar" id="speakerBar">
+        <span style="font-size:0.78rem;color:var(--cyan);font-family:var(--font-mono);">[發言人員切換 / 快捷鍵 1~4]:</span>
+      </div>
+
+      <div class="live-stream-grid">
+        <div class="visualizer-box">
+          <canvas id="audioWave" width="220" height="54"></canvas>
+          <div class="voice-meta">
+            <span id="pitchReadout">音頻特徵: -- Hz</span>
+            <span id="recStateLabel">STANDBY</span>
+          </div>
+        </div>
+        <div class="live-transcript-box">
+          <div class="interim-text" id="interimDisplay">
+            系統待命中 — 點擊「開始現場收音」進行麥克風即時收音翻譯，或點擊「載入會議實況模擬」預覽完整戰術紀錄。
+          </div>
+          <div class="manual-input-row">
+            <input type="text" class="hud-input" id="manualUtterance" placeholder="無法使用麥克風時，可在此直接輸入會議發言內容（支援中/英/日文自動翻譯與不確定標記）..." onkeydown="if(event.key==='Enter') submitManualUtterance()" />
+            <input type="text" class="hud-input" id="topicOverrideInput" style="max-width:210px;" placeholder="目前主題標籤 (選填)" />
+            <button class="btn" onclick="submitManualUtterance()">＋ 記錄發言</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 最上方：會議紀錄資料 -->
+    <section class="hud-panel" id="section-minutes">
+      <div class="panel-header">
+        <div class="panel-title-wrap">
+          <span class="panel-tag">SECTOR 01 // TOP</span>
+          <h2 class="panel-title">會議紀錄資料（標題分錄與與會人員紀錄）</h2>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+          <span class="badge-uncertain" id="uncertainCounter">⚠ 不確定標示: 0 筆</span>
+          <button class="btn no-print" style="padding:5px 11px;font-size:0.78rem;" onclick="addNewTopicPrompt()">＋ 新增標題分錄</button>
+        </div>
+      </div>
+
+      <div class="meeting-meta-grid">
+        <div class="meta-card">
+          <div class="meta-label">MEETING TITLE // 會議主旨</div>
+          <input class="meta-input" id="metaTitle" value="2026 Q4 跨部門星際專案同步會議" />
+        </div>
+        <div class="meta-card">
+          <div class="meta-label">FULL DATE & TIME // 完整討論日期與時間</div>
+          <div class="meta-value" id="metaDateTime" style="font-family:var(--font-mono);color:var(--cyan);">--</div>
+        </div>
+        <div class="meta-card">
+          <div class="meta-label">ATTENDEES // 與會人員名單</div>
+          <input class="meta-input" id="metaAttendees" value="陳指揮官 (PM)、林技術官 (RD)、蘇設計官 (UI/UX)、王行銷官 (MK)" />
+        </div>
+        <div class="meta-card">
+          <div class="meta-label">SUMMARY STATUS // 紀錄統整摘要</div>
+          <div class="meta-value" id="metaSummaryStat">等待收音或模擬資料載入</div>
+        </div>
+      </div>
+
+      <div class="topic-list" id="topicContainer"></div>
+    </section>
+
+    <!-- 中段：各業務的待辦事項 -->
+    <section class="hud-panel" id="section-action-items">
+      <div class="panel-header">
+        <div class="panel-title-wrap">
+          <span class="panel-tag">SECTOR 02 // MIDDLE</span>
+          <h2 class="panel-title">各業務的待辦事項（由會議紀錄自動摘錄）</h2>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <span style="font-size:0.8rem;color:var(--text-sub);" id="todoTotalStat">共 0 項待辦</span>
+        </div>
+      </div>
+
+      <div class="dept-grid" id="deptActionGrid"></div>
+    </section>
+
+    <!-- 最下方：最新資訊快報 -->
+    <section class="hud-panel" id="section-intel-flash">
+      <div class="panel-header">
+        <div class="panel-title-wrap">
+          <span class="panel-tag">SECTOR 03 // BOTTOM</span>
+          <h2 class="panel-title">最新資訊快報（即時決議、風險警示與系統情報）</h2>
+        </div>
+        <span style="font-family:var(--font-mono);font-size:0.75rem;color:var(--cyan);" id="intelUpdateStamp">LAST SYNC: --</span>
+      </div>
+
+      <div class="intel-grid" id="intelGrid"></div>
+    </section>
+
+  </main>
+
+  <!-- AI Settings Modal -->
+  <div class="modal-backdrop" id="settingsModal">
+    <div class="modal-box">
+      <div class="modal-title">⚙ HOLONET AI 核心與翻譯引擎設定</div>
+      <p style="font-size:0.83rem;color:var(--text-sub);">
+        本系統內建離線規則分析與聲頻辨識引擎，無需金鑰即可運作。若填入個人 Google Gemini API Key（僅儲存於您本機瀏覽器），可啟用更精準的多語翻譯、語意分錄統整與待辦摘錄。
+      </p>
+      <div class="form-field">
+        <label>GEMINI API KEY (選填，留空則使用內建智能分析)</label>
+        <input type="password" class="hud-input" id="geminiKeyInput" placeholder="AIzaSy..." />
+      </div>
+      <div class="form-field">
+        <label>自訂與會人員 (以逗號分隔，格式: 姓名:業務單位)</label>
+        <input type="text" class="hud-input" id="speakersConfigInput" value="陳指揮官:專案管理(PM), 林技術官:系統研發(RD), 蘇設計官:產品設計(UI/UX), 王行銷官:市場行銷(MK)" />
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:6px;">
+        <button class="btn" onclick="closeSettingsModal()">取消</button>
+        <button class="btn btn-primary" onclick="saveSettings()">儲存設定</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toastBox"></div>
+
+  <script>
+    const SPEAKER_COLORS = ['#00e5ff', '#f5b82e', '#00e676', '#ff6b9d', '#b388ff', '#ff9100'];
+
+    let state = {
+      speakers: [
+        { id: 's1', name: '陳指揮官', dept: '專案管理 (PM)', color: SPEAKER_COLORS[0], pitchProfile: 135 },
+        { id: 's2', name: '林技術官', dept: '系統研發 (RD)', color: SPEAKER_COLORS[1], pitchProfile: 165 },
+        { id: 's3', name: '蘇設計官', dept: '產品設計 (UI/UX)', color: SPEAKER_COLORS[2], pitchProfile: 215 },
+        { id: 's4', name: '王行銷官', dept: '市場行銷 (MK)', color: SPEAKER_COLORS[3], pitchProfile: 190 }
+      ],
+      activeSpeakerId: 's1',
+      meetingStartTime: new Date(),
+      meetingEndTime: null,
+      topics: [
+        {
+          id: 't1',
+          title: '【主題 01】系統架構升級與時程確認',
+          startTime: new Date(),
+          endTime: new Date(),
+          records: [],
+          summary: '',
+          topicTodos: []
+        }
+      ],
+      activeTopicId: 't1',
+      actionItems: [],
+      intelFlashes: [],
+      isRecording: false,
+      geminiApiKey: localStorage.getItem('holonet_gemini_key') || ''
+    };
+
+    let recognition = null;
+    let audioCtx = null;
+    let analyser = null;
+    let micStream = null;
+    let animFrameId = null;
+    let recentPitches = [];
+
+    function formatFullDateTime(d) {
+      if (!d) return '--';
+      const date = new Date(d);
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const wk = ['日', '一', '二', '三', '四', '五', '六'][date.getDay()];
+      const hh = String(date.getHours()).padStart(2, '0');
+      const mm = String(date.getMinutes()).padStart(2, '0');
+      const ss = String(date.getSeconds()).padStart(2, '0');
+      return `${y}年${m}月${day}日 (週${wk}) ${hh}:${mm}:${ss}`;
+    }
+
+    function formatTimeOnly(d) {
+      return new Date(d).toTimeString().slice(0, 8);
+    }
+
+    function updateClock() {
+      document.getElementById('liveClock').textContent = formatFullDateTime(new Date());
+      updateMeetingDateRangeDisplay();
+    }
+
+    function updateMeetingDateRangeDisplay() {
+      const startStr = formatFullDateTime(state.meetingStartTime);
+      const endStr = state.meetingEndTime ? formatTimeOnly(state.meetingEndTime) : '進行中 (LIVE)';
+      document.getElementById('metaDateTime').textContent = `${startStr} ～ ${endStr}`;
+    }
+
+    function showToast(msg) {
+      const el = document.getElementById('toastBox');
+      el.textContent = msg;
+      el.classList.add('show');
+      setTimeout(() => el.classList.remove('show'), 3200);
+    }
+
+    function renderSpeakerBar() {
+      const bar = document.getElementById('speakerBar');
+      const label = bar.querySelector('span');
+      bar.innerHTML = '';
+      bar.appendChild(label);
+
+      state.speakers.forEach((sp, idx) => {
+        const btn = document.createElement('button');
+        btn.className = `speaker-chip ${sp.id === state.activeSpeakerId ? 'active' : ''}`;
+        btn.onclick = () => selectSpeaker(sp.id);
+        btn.innerHTML = `<span class="speaker-dot" style="background:${sp.color};box-shadow:0 0 6px ${sp.color}"></span> [${idx + 1}] ${sp.name} (${sp.dept})`;
+        bar.appendChild(btn);
+      });
+    }
+
+    function selectSpeaker(id) {
+      state.activeSpeakerId = id;
+      renderSpeakerBar();
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) return;
+      const num = parseInt(e.key, 10);
+      if (num >= 1 && num <= state.speakers.length) {
+        selectSpeaker(state.speakers[num - 1].id);
+        showToast(`切換發言人員：${state.speakers[num - 1].name}`);
+      }
+    });
+
+    function estimatePitchHz(buffer, sampleRate) {
+      let rms = 0;
+      for (let i = 0; i < buffer.length; i++) rms += buffer[i] * buffer[i];
+      rms = Math.sqrt(rms / buffer.length);
+      if (rms < 0.015) return null;
+
+      let bestOffset = -1;
+      let bestCorr = 0;
+      const minOffset = Math.floor(sampleRate / 350);
+      const maxOffset = Math.floor(sampleRate / 75);
+
+      for (let offset = minOffset; offset <= maxOffset; offset++) {
+        let corr = 0;
+        for (let i = 0; i < buffer.length - offset; i++) {
+          corr += buffer[i] * buffer[i + offset];
+        }
+        if (corr > bestCorr) {
+          bestCorr = corr;
+          bestOffset = offset;
+        }
+      }
+      if (bestOffset > 0 && bestCorr > 0.01) {
+        const freq = sampleRate / bestOffset;
+        if (freq >= 75 && freq <= 350) return Math.round(freq);
+      }
+      return null;
+    }
+
+    function autoMatchSpeakerByPitch(avgPitch) {
+      if (!avgPitch || !document.getElementById('autoPitchDiarize').checked) return;
+      let closest = state.speakers[0];
+      let minDiff = Infinity;
+      state.speakers.forEach(sp => {
+        const diff = Math.abs(sp.pitchProfile - avgPitch);
+        if (diff < minDiff) {
+          minDiff = diff;
+          closest = sp;
+        }
+      });
+      if (closest && closest.id !== state.activeSpeakerId) {
+        state.activeSpeakerId = closest.id;
+        renderSpeakerBar();
+      }
+    }
+
+    async function toggleRecording() {
+      if (state.isRecording) stopRecording();
+      else await startRecording();
+    }
+
+    async function startRecording() {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        showToast('此瀏覽器不支援 Web Speech API，請改用 Chrome/Edge 或使用下方手動輸入/模擬功能。');
+        return;
+      }
+
+      try {
+        micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const source = audioCtx.createMediaStreamSource(micStream);
+        analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 2048;
+        source.connect(analyser);
+        drawWaveform();
+      } catch (err) {
+        showToast('無法取得麥克風權限：' + err.message);
+        return;
+      }
+
+      recognition = new SpeechRecognition();
+      recognition.lang = document.getElementById('srcLang').value;
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.maxAlternatives = 1;
+
+      recognition.onstart = () => {
+        state.isRecording = true;
+        document.getElementById('systemDot').classList.add('recording');
+        document.getElementById('micToggleBtn').innerHTML = '⏹ 停止現場收音';
+        document.getElementById('micToggleBtn').className = 'btn btn-danger';
+        document.getElementById('recStateLabel').textContent = 'LIVE REC';
+        document.getElementById('recStateLabel').style.color = 'var(--crimson)';
+        document.getElementById('interimDisplay').textContent = '🎙 正在即時收音與聲紋分析中...請開始說話';
+        showToast('現場收音與即時翻譯已啟動');
+      };
+
+      recognition.onresult = async (event) => {
+        let interim = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const res = event.results[i];
+          const transcript = res[0].transcript.trim();
+          const confidence = res[0].confidence;
+
+          if (res.isFinal && transcript) {
+            if (recentPitches.length > 0) {
+              const avg = recentPitches.reduce((a, b) => a + b, 0) / recentPitches.length;
+              autoMatchSpeakerByPitch(avg);
+              recentPitches = [];
+            }
+            await processUtterance(transcript, confidence > 0 ? confidence : 0.88);
+          } else {
+            interim += transcript + ' ';
+          }
+        }
+        if (interim.trim()) {
+          const sp = state.speakers.find(s => s.id === state.activeSpeakerId);
+          document.getElementById('interimDisplay').textContent = `[${sp.name}] ${interim}`;
+        }
+      };
+
+      recognition.onerror = (e) => {
+        if (e.error !== 'no-speech') showToast('語音辨識狀態：' + e.error);
+      };
+
+      recognition.onend = () => {
+        if (state.isRecording) {
+          try { recognition.start(); } catch (_) {}
+        }
+      };
+
+      recognition.start();
+    }
+
+    function stopRecording() {
+      state.isRecording = false;
+      state.meetingEndTime = new Date();
+      if (recognition) { try { recognition.stop(); } catch (_) {} recognition = null; }
+      if (micStream) { micStream.getTracks().forEach(t => t.stop()); micStream = null; }
+      if (audioCtx) { audioCtx.close(); audioCtx = null; }
+      if (animFrameId) cancelAnimationFrame(animFrameId);
+
+      document.getElementById('systemDot').classList.remove('recording');
+      document.getElementById('micToggleBtn').innerHTML = '🎙 開始現場收音';
+      document.getElementById('micToggleBtn').className = 'btn btn-primary';
+      document.getElementById('recStateLabel').textContent = 'STANDBY';
+      document.getElementById('recStateLabel').style.color = 'var(--text-sub)';
+      document.getElementById('interimDisplay').textContent = '收音已暫停，可隨時再次開啟或點擊「AI 智能統整紀錄」。';
+      updateMeetingDateRangeDisplay();
+      showToast('已停止現場收音');
+    }
+
+    function drawWaveform() {
+      if (!analyser) return;
+      const canvas = document.getElementById('audioWave');
+      const ctx = canvas.getContext('2d');
+      const bufferLen = analyser.fftSize;
+      const dataArray = new Float32Array(bufferLen);
+      const timeDomainByte = new Uint8Array(bufferLen);
+
+      function renderFrame() {
+        if (!state.isRecording) return;
+        animFrameId = requestAnimationFrame(renderFrame);
+        analyser.getFloatTimeDomainData(dataArray);
+        analyser.getByteTimeDomainData(timeDomainByte);
+
+        const pitch = estimatePitchHz(dataArray, audioCtx.sampleRate);
+        if (pitch) {
+          recentPitches.push(pitch);
+          if (recentPitches.length > 25) recentPitches.shift();
+          document.getElementById('pitchReadout').textContent = `音頻特徵: ${pitch} Hz`;
+        }
+
+        ctx.fillStyle = '#040912';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.lineWidth = 1.6;
+        ctx.strokeStyle = '#00e5ff';
+        ctx.beginPath();
+
+        const sliceWidth = canvas.width / bufferLen;
+        let x = 0;
+        for (let i = 0; i < bufferLen; i += 8) {
+          const v = timeDomainByte[i] / 128.0;
+          const y = (v * canvas.height) / 2;
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+          x += sliceWidth * 8;
+        }
+        ctx.lineTo(canvas.width, canvas.height / 2);
+        ctx.stroke();
+      }
+      renderFrame();
+    }
+
+    async function translateText(text, srcLangCode, targetLangCode) {
+      const srcShort = srcLangCode.split('-')[0];
+      const tgtShort = targetLangCode.split('-')[0];
+
+      const hasEnglish = /[a-zA-Z]{3,}/.test(text);
+      const hasJapanese = /[\u3040-\u30ff]/.test(text);
+      const effectiveSrc = hasJapanese ? 'ja' : (hasEnglish && !/[\u4e00-\u9fff]/.test(text) ? 'en' : srcShort);
+
+      if (effectiveSrc === tgtShort && !hasEnglish) return text;
+
+      if (state.geminiApiKey) {
+        try {
+          const targetName = tgtShort === 'zh' ? '繁體中文（台灣用語）' : tgtShort === 'ja' ? '日文' : '英文';
+          const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${state.geminiApiKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: `請將以下會議口語內容翻譯成精準專業的${targetName}，只回傳翻譯結果，不要加任何解釋：\n"${text}"` }] }]
+            })
+          });
+          const data = await res.json();
+          const out = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+          if (out) return out;
+        } catch (e) {}
+      }
+
+      try {
+        const langPair = `${effectiveSrc}|${tgtShort === 'zh' ? 'zh-TW' : tgtShort}`;
+        const controller = new AbortController();
+        const tid = setTimeout(() => controller.abort(), 3500);
+        const res = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${encodeURIComponent(langPair)}`, { signal: controller.signal });
+        clearTimeout(tid);
+        const data = await res.json();
+        if (data?.responseData?.translatedText && data.responseStatus === 200) {
+          return data.responseData.translatedText;
+        }
+      } catch (_) {}
+
+      return text;
+    }
+
+    function detectUncertainty(text, confidence = 0.9) {
+      const reasons = [];
+      if (confidence < 0.78) {
+        reasons.push(`語音辨識信心度偏低 (${Math.round(confidence * 100)}%)`);
+      }
+      const uncertainKeywords = [
+        '不確定', '可能', '大概', '好像', '也許', '應該', '待確認', '還沒確定', '不清楚',
+        'maybe', 'probably', 'not sure', 'around', 'approximately', 'tbd', 'uncertain', '?', '？'
+      ];
+      const matched = uncertainKeywords.filter(kw => text.toLowerCase().includes(kw));
+      if (matched.length > 0) {
+        reasons.push(`語意含不確定詞彙 (${matched.slice(0, 2).join(', ')})`);
+      }
+      return {
+        isUncertain: reasons.length > 0,
+        reason: reasons.join('；')
+      };
+    }
+
+    function extractActionFromText(translatedText, speaker, timestamp, uncertainInfo, topicTitle) {
+      const actionPatterns = [
+        '負責', '需要', '待辦', '請', '下週', '明天', '週五', '月底', '確認', '提供', '修正', '完成', '安排', '追蹤', '準備', '交付',
+        'will ', 'need to', 'action item', 'follow up', 'prepare', 'check'
+      ];
+      const lower = translatedText.toLowerCase();
+      const isAction = actionPatterns.some(p => lower.includes(p));
+      if (!isAction) return null;
+
+      let targetDept = speaker.dept;
+      let targetOwner = speaker.name;
+      state.speakers.forEach(sp => {
+        if (translatedText.includes(sp.name) || translatedText.includes(sp.dept.split(' ')[0])) {
+          targetDept = sp.dept;
+          targetOwner = sp.name;
+        }
+      });
+
+      return {
+        id: 'todo_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+        dept: targetDept,
+        owner: targetOwner,
+        text: translatedText,
+        timestamp,
+        uncertain: uncertainInfo.isUncertain,
+        uncertainReason: uncertainInfo.reason,
+        done: false,
+        topicTitle
+      };
+    }
+
+    async function processUtterance(rawText, confidence = 0.92, forcedSpeakerId = null, forcedTopicTitle = null) {
+      const now = new Date();
+      state.meetingEndTime = now;
+
+      if (forcedTopicTitle) {
+        let foundTopic = state.topics.find(t => t.title === forcedTopicTitle);
+        if (!foundTopic) {
+          foundTopic = {
+            id: 't_' + Date.now() + Math.random().toString(36).slice(2, 5),
+            title: forcedTopicTitle,
+            startTime: now,
+            endTime: now,
+            records: [],
+            summary: '',
+            topicTodos: []
+          };
+          state.topics.push(foundTopic);
+        }
+        state.activeTopicId = foundTopic.id;
+      }
+
+      const topic = state.topics.find(t => t.id === state.activeTopicId) || state.topics[0];
+      topic.endTime = now;
+
+      const spId = forcedSpeakerId || state.activeSpeakerId;
+      const speaker = state.speakers.find(s => s.id === spId) || state.speakers[0];
+
+      const srcLang = document.getElementById('srcLang').value;
+      const tgtLang = document.getElementById('targetLang').value;
+      const translated = await translateText(rawText, srcLang, tgtLang);
+      const uncertainInfo = detectUncertainty(rawText + ' ' + translated, confidence);
+
+      const record = {
+        id: 'rec_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+        speakerId: speaker.id,
+        speakerName: speaker.name,
+        speakerDept: speaker.dept,
+        speakerColor: speaker.color,
+        originalText: rawText,
+        translatedText: translated,
+        timestamp: now,
+        confidence,
+        uncertain: uncertainInfo.isUncertain,
+        uncertainReason: uncertainInfo.reason
+      };
+
+      topic.records.push(record);
+
+      const todo = extractActionFromText(translated, speaker, now, uncertainInfo, topic.title);
+      if (todo) {
+        state.actionItems.push(todo);
+        topic.topicTodos.push(todo);
+      }
+
+      await synthesizeMeeting(false);
+      renderAll();
+    }
+
+    async function submitManualUtterance() {
+      const input = document.getElementById('manualUtterance');
+      const topicIn = document.getElementById('topicOverrideInput');
+      const txt = input.value.trim();
+      if (!txt) return;
+      input.value = '';
+      const customTopic = topicIn.value.trim() || null;
+      await processUtterance(txt, 0.95, null, customTopic);
+      showToast('已記錄並同步翻譯至會議紀錄');
+    }
+
+    function addNewTopicPrompt() {
+      const name = prompt('請輸入新的會議標題分錄名稱：', `【主題 0${state.topics.length + 1}】新討論議題`);
+      if (!name || !name.trim()) return;
+      const now = new Date();
+      const newTopic = {
+        id: 't_' + Date.now(),
+        title: name.trim(),
+        startTime: now,
+        endTime: now,
+        records: [],
+        summary: '',
+        topicTodos: []
+      };
+      state.topics.push(newTopic);
+      state.activeTopicId = newTopic.id;
+      renderAll();
+      showToast(`已切換至新標題分錄：${name.trim()}`);
+    }
+
+    async function synthesizeMeeting(showFeedback = false) {
+      for (const topic of state.topics) {
+        if (topic.records.length === 0) {
+          topic.summary = '尚無發言紀錄。';
+          continue;
+        }
+
+        if (state.geminiApiKey && showFeedback) {
+          try {
+            const transcriptBlob = topic.records.map(r => `[${r.speakerName} (${r.speakerDept})]: ${r.translatedText}${r.uncertain ? ' [不確定]' : ''}`).join('\n');
+            const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${state.geminiApiKey}`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                contents: [{ parts: [{ text: `請將以下「${topic.title}」會議紀錄統整為 2~3 句簡潔專業的繁體中文重點摘要，若有不確定事項請特別註明：\n${transcriptBlob}` }] }]
+              })
+            });
+            const data = await res.json();
+            const out = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+            if (out) { topic.summary = out; continue; }
+          } catch (_) {}
+        }
+
+        const participants = [...new Set(topic.records.map(r => r.speakerName))];
+        const uncertainCount = topic.records.filter(r => r.uncertain).length;
+        const keyPoints = topic.records.slice(-3).map(r => `${r.speakerName}指出「${r.translatedText.slice(0, 42)}${r.translatedText.length > 42 ? '...' : ''}」`).join('；');
+        topic.summary = `本議題由 ${participants.join('、')} 參與討論（共 ${topic.records.length} 則紀錄` +
+          (uncertainCount > 0 ? `，含 ${uncertainCount} 筆待確認/不確定項目` : '') +
+          `）。核心重點：${keyPoints}。`;
+      }
+
+      const flashes = [];
+      const totalRecs = state.topics.reduce((acc, t) => acc + t.records.length, 0);
+      const uncertainRecs = state.topics.flatMap(t => t.records.filter(r => r.uncertain));
+
+      if (uncertainRecs.length > 0) {
+        flashes.push({
+          level: 'warn',
+          tag: 'UNCERTAINTY ALERT // 待確認警示',
+          time: formatFullDateTime(new Date()),
+          title: `偵測到 ${uncertainRecs.length} 項不確定或低信心度內容`,
+          desc: uncertainRecs.map(u => `• [${u.speakerName}] ${u.translatedText} (${u.uncertainReason})`).join(' ｜ ')
+        });
+      }
+
+      if (state.actionItems.length > 0) {
+        const pending = state.actionItems.filter(a => !a.done).length;
+        flashes.push({
+          level: 'info',
+          tag: 'MISSION DISPATCH // 待辦情報更新',
+          time: formatFullDateTime(new Date()),
+          title: `已自動摘錄 ${state.actionItems.length} 項跨業務待辦（尚餘 ${pending} 項執行中）`,
+          desc: `涵蓋單位：${[...new Set(state.actionItems.map(a => a.dept))].join('、')}。請各業務負責人於期限前確認狀態。`
+        });
+      }
+
+      if (totalRecs > 0) {
+        const latestTopic = state.topics[state.topics.length - 1];
+        flashes.push({
+          level: 'info',
+          tag: 'HOLONET BRIEFING // 最新會議進度快報',
+          time: formatFullDateTime(latestTopic.endTime || new Date()),
+          title: `目前進度：${latestTopic.title}`,
+          desc: latestTopic.summary
+        });
+      } else {
+        flashes.push({
+          level: 'info',
+          tag: 'SYSTEM STANDBY // 系統情報待命',
+          time: formatFullDateTime(new Date()),
+          title: '星際會議戰術分析核心運作正常',
+          desc: '等待會議音訊輸入。系統將自動進行語者聲紋辨識、多語翻譯、待辦拆解與不確定風險標示。'
+        });
+      }
+
+      state.intelFlashes = flashes;
+      document.getElementById('intelUpdateStamp').textContent = `LAST SYNC: ${formatFullDateTime(new Date())}`;
+      document.getElementById('metaSummaryStat').textContent = `共 ${state.topics.length} 個主題分錄 / ${totalRecs} 則發言 / ${state.actionItems.length} 項待辦`;
+
+      if (showFeedback) {
+        renderAll();
+        showToast('已完成全會議紀錄智能統整與情報快報更新');
+      }
+    }
+
+    async function runSimulationDemo() {
+      clearAllRecords(true);
+      const baseTime = new Date();
+      state.meetingStartTime = new Date(baseTime.getTime() - 18 * 60000);
+
+      const demoScript = [
+        {
+          topic: '【主題 01】星際雲端平台 2.0 上線時程與架構確認',
+          speakerId: 's1',
+          raw: '各位早安，今天是11月13日同步會議。我們需要確認雲端 2.0 API 切換的最終時程，請研發與設計先回報進度。',
+          translated: '各位早安，今天是11月13日同步會議。我們需要確認雲端 2.0 API 切換的最終時程，請研發與設計先回報進度。',
+          conf: 0.96, offsetMin: 1
+        },
+        {
+          topic: '【主題 01】星際雲端平台 2.0 上線時程與架構確認',
+          speakerId: 's2',
+          raw: 'The backend microservice migration is 90% complete, and I will finish the load testing by next Wednesday.',
+          translated: '後端微服務遷移已完成 90%，我將負責在下週三前完成壓力測試。',
+          conf: 0.94, offsetMin: 4
+        },
+        {
+          topic: '【主題 01】星際雲端平台 2.0 上線時程與架構確認',
+          speakerId: 's2',
+          raw: '不過資料庫快取節點的費用大概需要三十萬，還是二十五萬左右，這個數字我目前還不確定，需要再跟採購確認。',
+          translated: '不過資料庫快取節點的費用大概需要三十萬，還是二十五萬左右，這個數字我目前還不確定，需要再跟採購確認。',
+          conf: 0.69, offsetMin: 6
+        },
+        {
+          topic: '【主題 02】UI/UX 戰術儀表板改版與行銷推廣',
+          speakerId: 's3',
+          raw: '設計團隊本週五前會交付深色科技風的新版儀表板原型，包含即時警示動畫與行動端自適應排版。',
+          translated: '設計團隊本週五前會交付深色科技風的新版儀表板原型，包含即時警示動畫與行動端自適應排版。',
+          conf: 0.95, offsetMin: 10
+        },
+        {
+          topic: '【主題 02】UI/UX 戰術儀表板改版與行銷推廣',
+          speakerId: 's4',
+          raw: 'Marketing will prepare the product launch press release and schedule client briefings for early December, maybe December 5th?',
+          translated: '行銷部門將負責準備產品發表新聞稿，並安排客戶簡報會於十二月初舉行，日期可能是十二月五日左右？',
+          conf: 0.72, offsetMin: 14
+        },
+        {
+          topic: '【主題 02】UI/UX 戰術儀表板改版與行銷推廣',
+          speakerId: 's1',
+          raw: '好的，請行銷官確認最終發表日期後回報，我這邊會負責彙整風險清單給高層審閱。',
+          translated: '好的，請行銷官確認最終發表日期後回報，我這邊會負責彙整風險清單給高層審閱。',
+          conf: 0.97, offsetMin: 17
+        }
+      ];
+
+      state.topics = [];
+      for (const item of demoScript) {
+        const tStamp = new Date(state.meetingStartTime.getTime() + item.offsetMin * 60000);
+        let topic = state.topics.find(t => t.title === item.topic);
+        if (!topic) {
+          topic = { id: 't_' + Math.random().toString(36).slice(2, 7), title: item.topic, startTime: tStamp, endTime: tStamp, records: [], summary: '', topicTodos: [] };
+          state.topics.push(topic);
+        }
+        topic.endTime = tStamp;
+        const sp = state.speakers.find(s => s.id === item.speakerId);
+        const uncertainInfo = detectUncertainty(item.raw + ' ' + item.translated, item.conf);
+
+        const rec = {
+          id: 'rec_' + Math.random().toString(36).slice(2, 7),
+          speakerId: sp.id, speakerName: sp.name, speakerDept: sp.dept, speakerColor: sp.color,
+          originalText: item.raw, translatedText: item.translated,
+          timestamp: tStamp, confidence: item.conf,
+          uncertain: uncertainInfo.isUncertain, uncertainReason: uncertainInfo.reason
+        };
+        topic.records.push(rec);
+
+        const todo = extractActionFromText(item.translated, sp, tStamp, uncertainInfo, topic.title);
+        if (todo) {
+          state.actionItems.push(todo);
+          topic.topicTodos.push(todo);
+        }
+      }
+
+      state.activeTopicId = state.topics[state.topics.length - 1].id;
+      state.meetingEndTime = new Date(state.meetingStartTime.getTime() + 18 * 60000);
+      await synthesizeMeeting(false);
+      renderAll();
+      showToast('已載入星際戰術會議實況模擬（含英翻中、多人辨識與不確定標記）');
+    }
+
+    function clearAllRecords(silent = false) {
+      state.meetingStartTime = new Date();
+      state.meetingEndTime = null;
+      state.topics = [{
+        id: 't1',
+        title: '【主題 01】會議開場與核心議題討論',
+        startTime: new Date(),
+        endTime: new Date(),
+        records: [],
+        summary: '',
+        topicTodos: []
+      }];
+      state.activeTopicId = 't1';
+      state.actionItems = [];
+      synthesizeMeeting(false);
+      renderAll();
+      if (!silent) showToast('已清空並重置會議紀錄');
+    }
+
+    function renderAll() {
+      updateMeetingDateRangeDisplay();
+      renderTopicMinutes();
+      renderDepartmentActionItems();
+      renderIntelFlashes();
+    }
+
+    function escapeHtml(str) {
+      return String(str).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+    }
+
+    function renderTopicMinutes() {
+      const container = document.getElementById('topicContainer');
+      container.innerHTML = '';
+      let totalUncertain = 0;
+
+      state.topics.forEach(topic => {
+        const block = document.createElement('div');
+        block.className = 'topic-block';
+
+        const byAttendee = {};
+        topic.records.forEach(r => {
+          if (r.uncertain) totalUncertain++;
+          if (!byAttendee[r.speakerId]) {
+            byAttendee[r.speakerId] = {
+              name: r.speakerName,
+              dept: r.speakerDept,
+              color: r.speakerColor,
+              items: []
+            };
+          }
+          byAttendee[r.speakerId].items.push(r);
+        });
+
+        let attendeeHtml = '';
+        const attendeeKeys = Object.keys(byAttendee);
+        if (attendeeKeys.length === 0) {
+          attendeeHtml = `<div style="color:var(--text-sub);font-size:0.88rem;padding:10px 0;">此標題分錄尚無發言紀錄，請開始收音或輸入內容。</div>`;
+        } else {
+          attendeeHtml = `<div class="attendee-records-grid">` + attendeeKeys.map(k => {
+            const grp = byAttendee[k];
+            const itemsHtml = grp.items.map(r => `
+              <div class="record-item ${r.uncertain ? 'uncertain' : ''}">
+                <div class="record-meta-line">
+                  <span>🕒 ${formatFullDateTime(r.timestamp)}</span>
+                  <div style="display:flex;gap:6px;align-items:center;">
+                    ${r.uncertain ? `<span class="badge-uncertain" title="${escapeHtml(r.uncertainReason)}">⚠ 不確定內容</span>` : ''}
+                    <button class="no-print" onclick="toggleRecordUncertainty('${topic.id}','${r.id}')" style="background:none;border:none;color:var(--text-sub);cursor:pointer;font-size:0.72rem;" title="切換不確定標記">[標記]</button>
+                  </div>
+                </div>
+                <div class="record-translated">${escapeHtml(r.translatedText)}</div>
+                ${r.originalText !== r.translatedText ? `<div class="record-original">原文：${escapeHtml(r.originalText)}</div>` : ''}
+                ${r.uncertain ? `<div style="font-size:0.75rem;color:#ffd56b;">原因：${escapeHtml(r.uncertainReason)}</div>` : ''}
+              </div>
+            `).join('');
+
+            return `
+              <div class="attendee-card">
+                <div class="attendee-header">
+                  <div class="attendee-name">
+                    <span class="speaker-dot" style="background:${grp.color};box-shadow:0 0 6px ${grp.color}"></span>
+                    ${escapeHtml(grp.name)}
+                  </div>
+                  <span class="attendee-role">${escapeHtml(grp.dept)}</span>
+                </div>
+                ${itemsHtml}
+              </div>
+            `;
+          }).join('') + `</div>`;
+        }
+
+        const topicTodosHtml = topic.topicTodos.length > 0
+          ? `<div style="margin-top:8px;font-size:0.84rem;color:#cfe7ff;">
+               <strong style="color:var(--gold);">📌 本段待辦摘錄：</strong>
+               ${topic.topicTodos.map(td => `[${escapeHtml(td.owner)}] ${escapeHtml(td.text)}${td.uncertain ? ' <span class="badge-uncertain">不確定</span>' : ''}`).join(' ｜ ')}
+             </div>`
+          : '';
+
+        block.innerHTML = `
+          <div class="topic-header">
+            <div class="topic-title">${escapeHtml(topic.title)}</div>
+            <div class="topic-time">討論時間：${formatFullDateTime(topic.startTime)} ～ ${formatTimeOnly(topic.endTime)}</div>
+          </div>
+          ${attendeeHtml}
+          <div class="topic-summary-box">
+            <div class="topic-summary-title">HOLONET 簡潔統整摘要 // TOPIC SUMMARY</div>
+            <div>${escapeHtml(topic.summary || '等待統整...')}</div>
+            ${topicTodosHtml}
+          </div>
+        `;
+        container.appendChild(block);
+      });
+
+      document.getElementById('uncertainCounter').textContent = `⚠ 不確定標示: ${totalUncertain} 筆`;
+    }
+
+    function toggleRecordUncertainty(topicId, recId) {
+      const topic = state.topics.find(t => t.id === topicId);
+      const rec = topic?.records.find(r => r.id === recId);
+      if (!rec) return;
+      rec.uncertain = !rec.uncertain;
+      rec.uncertainReason = rec.uncertain ? '與會者手動標記為需再確認項目' : '';
+      synthesizeMeeting(false);
+      renderAll();
+    }
+
+    function renderDepartmentActionItems() {
+      const grid = document.getElementById('deptActionGrid');
+      grid.innerHTML = '';
+      document.getElementById('todoTotalStat').textContent = `共 ${state.actionItems.length} 項待辦`;
+
+      if (state.actionItems.length === 0) {
+        grid.innerHTML = `<div style="color:var(--text-sub);font-size:0.9rem;padding:10px;">尚未摘錄到業務待辦事項。發言中提及「負責、確認、需要、下週、交付」等字詞將自動摘錄至此。</div>`;
+        return;
+      }
+
+      const grouped = {};
+      state.actionItems.forEach(item => {
+        if (!grouped[item.dept]) grouped[item.dept] = [];
+        grouped[item.dept].push(item);
+      });
+
+      Object.keys(grouped).forEach(dept => {
+        const list = grouped[dept];
+        const card = document.createElement('div');
+        card.className = 'dept-card';
+        card.innerHTML = `
+          <div class="dept-card-header">
+            <div class="dept-title">⚡ ${escapeHtml(dept)}</div>
+            <span class="dept-count">${list.filter(i => !i.done).length} / ${list.length} 待執行</span>
+          </div>
+          <ul class="todo-list">
+            ${list.map(td => `
+              <li class="todo-item ${td.uncertain ? 'uncertain-todo' : ''} ${td.done ? 'done' : ''}">
+                <input type="checkbox" class="todo-checkbox" ${td.done ? 'checked' : ''} onchange="toggleTodoDone('${td.id}')" />
+                <div class="todo-body">
+                  <div class="todo-text">${escapeHtml(td.text)}</div>
+                  <div class="todo-meta">
+                    <span>負責人: ${escapeHtml(td.owner)}</span>
+                    <span>• ${formatFullDateTime(td.timestamp)}</span>
+                    ${td.uncertain ? `<span class="badge-uncertain">⚠ 待確認: ${escapeHtml(td.uncertainReason)}</span>` : ''}
+                  </div>
+                </div>
+              </li>
+            `).join('')}
+          </ul>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    function toggleTodoDone(todoId) {
+      const td = state.actionItems.find(a => a.id === todoId);
+      if (td) {
+        td.done = !td.done;
+        synthesizeMeeting(false);
+        renderAll();
+      }
+    }
+
+    function renderIntelFlashes() {
+      const grid = document.getElementById('intelGrid');
+      grid.innerHTML = '';
+
+      state.intelFlashes.forEach(fl => {
+        const card = document.createElement('div');
+        card.className = `intel-card ${fl.level === 'warn' ? 'alert' : fl.level === 'crit' ? 'critical' : ''}`;
+        const badgeCls = fl.level === 'warn' ? 'warn' : fl.level === 'crit' ? 'crit' : 'info';
+        card.innerHTML = `
+          <div class="intel-top">
+            <span class="intel-type ${badgeCls}">${escapeHtml(fl.tag)}</span>
+            <span style="color:var(--text-sub);">${escapeHtml(fl.time)}</span>
+          </div>
+          <div class="intel-title">${escapeHtml(fl.title)}</div>
+          <div class="intel-desc">${escapeHtml(fl.desc)}</div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    function openSettingsModal() {
+      document.getElementById('geminiKeyInput').value = state.geminiApiKey;
+      document.getElementById('speakersConfigInput').value = state.speakers.map(s => `${s.name}:${s.dept}`).join(', ');
+      document.getElementById('settingsModal').classList.add('open');
+    }
+
+    function closeSettingsModal() {
+      document.getElementById('settingsModal').classList.remove('open');
+    }
+
+    function saveSettings() {
+      const key = document.getElementById('geminiKeyInput').value.trim();
+      state.geminiApiKey = key;
+      if (key) localStorage.setItem('holonet_gemini_key', key);
+      else localStorage.removeItem('holonet_gemini_key');
+
+      const rawSp = document.getElementById('speakersConfigInput').value.trim();
+      if (rawSp) {
+        const parsed = rawSp.split(/[,，]/).map((pair, idx) => {
+          const [name, dept] = pair.split(':').map(x => x.trim());
+          return {
+            id: 's' + (idx + 1),
+            name: name || `成員${idx + 1}`,
+            dept: dept || '一般業務',
+            color: SPEAKER_COLORS[idx % SPEAKER_COLORS.length],
+            pitchProfile: 130 + idx * 30
+          };
+        }).filter(x => x.name);
+
+        if (parsed.length > 0) {
+          state.speakers = parsed;
+          state.activeSpeakerId = parsed[0].id;
+          document.getElementById('metaAttendees').value = parsed.map(p => `${p.name} (${p.dept})`).join('、');
+        }
+      }
+
+      closeSettingsModal();
+      renderSpeakerBar();
+      showToast('AI 核心與人員設定已儲存');
+    }
+
+    function downloadMeetingHTML() {
+      document.querySelectorAll('input').forEach(inp => {
+        if (inp.type === 'checkbox' || inp.type === 'radio') {
+          if (inp.checked) inp.setAttribute('checked', 'checked');
+          else inp.removeAttribute('checked');
+        } else if (inp.type !== 'password') {
+          inp.setAttribute('value', inp.value);
+        }
+      });
+
+      const clone = document.documentElement.cloneNode(true);
+      const keyInput = clone.querySelector('#geminiKeyInput');
+      if (keyInput) keyInput.setAttribute('value', '');
+
+      const htmlContent = '<!DOCTYPE html>\n' + clone.outerHTML;
+      const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+
+      const now = new Date();
+      const stamp = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`;
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Holonet_Meeting_Minutes_${stamp}.html`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      showToast(`已匯出完整會議紀錄 HTML 檔案 (${a.download})`);
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      updateClock();
+      setInterval(updateClock, 1000);
+      renderSpeakerBar();
+      synthesizeMeeting(false);
+      renderAll();
+    });
+  </script>
+</body>
+</html>
